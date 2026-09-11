@@ -37,7 +37,7 @@ popt = scipy.optimize.minimize(fitter.eval_all, p0, method='Powell')
 ![Graph 4](global_fitter_final.png)
 
 
-<h2> Using BFGS: </h2>
+<h1> Using BFGS: </h1>
 
 Runtime using BFGS: 14 minutes, 30 seconds
 
@@ -49,4 +49,8 @@ popt = scipy.optimize.minimize(fitter.eval_all, p0, method='BFGS')
 ![Graph 5](global_fitter_final.png)
 
 
+<h1>Using Nelder-Mead Model </h1>
+<br>
+Runtime: 16 minutes, 3 seconds
 
+![Graph 5](global_fitter_final.png)
