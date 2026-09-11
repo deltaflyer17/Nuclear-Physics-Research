@@ -32,3 +32,13 @@ popt = scipy.optimize.minimize(fitter.eval_all, p0, method='Powell')
 
 ![Graph 4](global_fitter_final.png)
 
+
+Using BFGS: 
+
+```Python
+popt = scipy.optimize.minimize(fitter.eval_all, p0, method='BFGS')
+
+```
+
+
+
