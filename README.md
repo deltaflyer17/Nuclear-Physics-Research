@@ -4,6 +4,13 @@ Version 1 graphs with Powell optimization:
 
 Conditions used -
 
+Powell Time & Space Complexity
+
+Time Complexity: O(n^2)
+
+Space Complexity: O(n* Tline)
+where Tline is time taken to complete single 1-dimensional search
+
 ```python
 fitter.chi2_LR_scale = 1e-4
 fitter.chi2_PID_scale = 1
