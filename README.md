@@ -1,12 +1,16 @@
 11 September 2026 - 09:38
 
-Version 1 graphs with Powell optimization: 
+<h1> Version 1 graphs with Powell optimization: </h1> 
 
 Conditions used -
 
 Powell Time & Space Complexity
 
-Time Complexity: O(n^2)
+Time Complexity: O(n^2) 
+
+<br>
+Runtime: 13 minutes, 3 seconds, 8 milliseconds
+<br>
 
 Space Complexity: O(n* Tline)
 where Tline is time taken to complete single 1-dimensional search
@@ -33,7 +37,9 @@ popt = scipy.optimize.minimize(fitter.eval_all, p0, method='Powell')
 ![Graph 4](global_fitter_final.png)
 
 
-Using BFGS:
+<h2> Using BFGS: </h2>
+
+Runtime using BFGS: 14 minutes, 30 seconds
 
 ```Python
 popt = scipy.optimize.minimize(fitter.eval_all, p0, method='BFGS')
