@@ -59,6 +59,8 @@ Runtime: 16 minutes, 3 seconds
 
 <h1>Using Jacobian</h1>
 
+![Graph 6](global_fitter_final_gradient.png)
+
 ```Python
 def objective(params):
     return fitter.eval(params)
