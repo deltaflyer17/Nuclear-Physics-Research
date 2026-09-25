@@ -1,6 +1,12 @@
+from sqlite3.dbapi2 import paramstyle
+
 import numpy
 import matplotlib.pyplot
 import scipy
+import time
+
+from scipy.optimize import minimize
+
 
 # This function is to fit double half-Gaussians with a straight line in between for SX3 position calibration
 def top_hat(x, left, right, sigma, left_amp, right_amp):
@@ -83,10 +89,10 @@ class global_fitter:
                 self.params[36 + strip] = right
 
     def set_kinematics(self, m_beam, m_targ, m_eject, m_rec, Q_gs):
-        self.m_beam_MeV = m_beam * 931.478;
-        self.m_targ_MeV = m_targ * 931.478;
-        self.m_eject_MeV = m_eject * 931.478;
-        self.m_rec_MeV = m_rec * 931.478;
+        self.m_beam_MeV = m_beam * 931.478
+        self.m_targ_MeV = m_targ * 931.478
+        self.m_eject_MeV = m_eject * 931.478
+        self.m_rec_MeV = m_rec * 931.478
         self.Q_gs = Q_gs
 
     def get_Ex(self, energy, theta, beam_en):
@@ -132,7 +138,7 @@ class global_fitter:
         front_sum = stripL_gain * data[4] + stripR_gain * data[5]
         raw_position = (stripR_gain * data[5] - stripL_gain * data[4]) / front_sum
         self.data_raw_pos[strip].append(raw_position)
-        position = (raw_position - left_edge) * (1. / (right_edge - left_edge)) * 75.0 + z_offset;
+        position = (raw_position - left_edge) * (1. / (right_edge - left_edge)) * 75.0 + z_offset
         theta = numpy.arctan(self.radius[strip] / position)
         if (theta < 0):
             theta += numpy.pi
@@ -254,16 +260,18 @@ class global_fitter:
         self.eval_ct += 1
         return chi2
 
+print("timer started")
+start_time = time.perf_counter()
 
 fitter = global_fitter()
 fitter.detID = 16  # Change this for every clock (24-hour) position
 fitter.threshold = 5
 fitter.load_PID("SiPID_65um_4He.dat")
 fitter.set_kinematics(3.0160, 38.9637, 4.0026, 37.9691, 7.4999)
-fitter.nominal_beam_en = 31.5;
+fitter.nominal_beam_en = 31.5
 fitter.load_params("SX3.16.params")  # Change clock position here as well
 # fitter.params[42] = 0.0115;
-fitter.params[42] = 0.0004025;
+fitter.params[42] = 0.0004025
 print(fitter.params)
 # Below are the different data sets for the different states
 fitter.eval_dataset("labeled_data_2401.dat", 2.401)
@@ -274,12 +282,19 @@ fitter.eval_dataset("labeled_data_1698.dat", 1.698)
 print(fitter.chi2_LR, fitter.chi2_PID, fitter.chi2_Ex)
 fitter.eval_dataset("alpha_ds_data.dat", -1)
 print(fitter.chi2_LR, fitter.chi2_PID, fitter.chi2_Ex)
+
 # Knobs to fine-tune for optimal optimization
 
-# modifiable
+#bottom left
 fitter.chi2_LR_scale = 1e-4
+
+#top left
 fitter.chi2_PID_scale = 1
+
+#top right
 fitter.chi2_Ex_scale = 500
+
+#bottom right
 fitter.chi2_edges_scale = 100000
 
 fitter.plot("global_fitter_init.png")
@@ -291,8 +306,51 @@ fitter.add_dataset("labeled_data_7140.dat", 7.140)
 fitter.add_dataset("labeled_data_1698.dat", 1.698)
 fitter.add_dataset("alpha_ds_data.dat", -1)
 p0 = fitter.params
-popt = scipy.optimize.minimize(fitter.eval_all, p0, method='Powell')
+# popt = scipy.optimize.minimize(fitter.eval_all, p0, method='Powell')
+def cache_datasets(fitter):
+    cache = {}
+    for name, ref_Ex in fitter.datasets:
+        cache[name] = numpy.genfromtxt(name)
+
+    def eval_dataset_cached(dataset, ref_Ex):
+        fitter.ref_Ex = ref_Ex
+        for d in cache[dataset]:
+            fitter.eval(d)
+
+    fitter.eval_dataset = eval_dataset_cached
+    print("Cached %d datasets in memory." % len(cache))
+
+def objective(params):
+    return fitter.eval(params)
+
+initial_params = fitter.params
+
+res = minimize(
+    fun=objective,
+    x0=initial_params,
+    method='BFGS',
+    jac='3-point'
+)
+print("Starting gradient-based fit (BFGS)...")
+print("Optimized parameters: ", res.x)
+
+cache_datasets(fitter)
+
+saved_edges_scale = fitter.chi2_edges_scale
+fitter.chi2_edges_scale = 0.0   # disable non-smooth term during gradient fit
+
+fitter.chi2_edges_scale = saved_edges_scale  # restore for polishing step
+
+print("Polishing with Powell...")
+t0 = time.time()
+popt = scipy.optimize.minimize(fitter.eval_all, res.x, method="Powell")
+print("Powell polish took %.1f sec" % (time.time() - t0))
 print(popt)
+
+fitter.eval_all(popt.x)
+print(fitter.chi2_LR, fitter.chi2_PID, fitter.chi2_Ex)
+fitter.plot("global_fitter_final_gradient.png")
+
 fitter.eval_all(popt.x)
 print(fitter.chi2_LR, fitter.chi2_PID, fitter.chi2_Ex)
 
@@ -300,3 +358,9 @@ fitter.plot("global_fitter_final.png")
 
 for i in range(len(popt.x)):
     print("%8.7f" % popt.x[i])
+
+end_time = time.perf_counter()
+
+execution_time = end_time - start_time
+print(execution_time/60)
+print("minutes")

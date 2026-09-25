@@ -54,3 +54,24 @@ popt = scipy.optimize.minimize(fitter.eval_all, p0, method='BFGS')
 Runtime: 16 minutes, 3 seconds
 
 ![Graph 5](global_fitter_final.png)
+
+<br>
+
+<h1>Using Jacobian</h1>
+
+```Python
+def objective(params):
+    return fitter.eval(params)
+
+initial_params = fitter.params
+
+res = minimize(
+    fun=objective,
+    x0=initial_params,
+    method='BFGS',
+    jac='3-point'
+)
+print("Starting gradient-based fit (BFGS)...")
+print("Optimized parameters: ", res.x)
+
+```
